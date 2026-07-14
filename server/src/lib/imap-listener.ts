@@ -49,14 +49,19 @@ async function processEmailMessage(source: Buffer, configId: number) {
 
     const normalizedSubject = stripSubjectPrefixes(data.subject);
 
-    // Check for existing open ticket from same sender with matching subject
-    const existingTicket = await prisma.ticket.findFirst({
-      where: {
-        senderEmail: data.from,
-        status: { notIn: ["resolved", "closed"] },
-        subject: { equals: normalizedSubject, mode: "insensitive" },
-      },
-    });
+    const isExplicitReply = !!parsed.inReplyTo || /^(Re:\s*|Fwd:\s*)+/i.test(data.subject);
+
+    // Only group into existing ticket if it's explicitly a reply
+    let existingTicket = null;
+    if (isExplicitReply) {
+      existingTicket = await prisma.ticket.findFirst({
+        where: {
+          senderEmail: data.from,
+          status: { notIn: ["resolved", "closed"] },
+          subject: { equals: normalizedSubject, mode: "insensitive" },
+        },
+      });
+    }
 
     if (existingTicket) {
       await prisma.reply.create({
