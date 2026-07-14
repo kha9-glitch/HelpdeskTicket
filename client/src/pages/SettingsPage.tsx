@@ -15,9 +15,14 @@ export default function SettingsPage() {
 
   const fetchData = async () => {
     try {
-      const { data: configData } = await authClient.fetch("/api/settings/email", {});
-      if (configData) {
-        setConfig(configData);
+      const res = await fetch("/api/settings/email");
+      if (res.ok) {
+        const configData = await res.json();
+        if (configData) {
+          setConfig(configData);
+          return;
+        }
+      }
       } else {
         setConfig({
           imapHost: "", imapPort: 993, imapUser: "", imapPassword: "", imapTls: true,
@@ -40,12 +45,15 @@ export default function SettingsPage() {
     setSaving(true);
     setMessage(null);
     try {
-      const { error: apiError } = await authClient.fetch("/api/settings/email", {
+      const res = await fetch("/api/settings/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(config)
       });
-      if (apiError) throw apiError;
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw err;
+      }
       
       setMessage({ type: "success", text: "Configuration saved successfully!" });
       await fetchData();
@@ -60,12 +68,14 @@ export default function SettingsPage() {
     setTestingImap(true);
     setMessage(null);
     try {
-      const { data, error: apiError } = await authClient.fetch("/api/settings/test-imap", {
+      const res = await fetch("/api/settings/test-imap", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(config)
       });
-      if (apiError || (data as any)?.success === false) throw apiError || (data as any)?.message;
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.success === false) throw data;
+      
       setMessage({ type: "success", text: "IMAP Connection Successful!" });
     } catch (e: any) {
       console.error(e);
@@ -86,12 +96,14 @@ export default function SettingsPage() {
     setTestingSmtp(true);
     setMessage(null);
     try {
-      const { data, error: apiError } = await authClient.fetch("/api/settings/test-smtp", {
+      const res = await fetch("/api/settings/test-smtp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(config)
       });
-      if (apiError || (data as any)?.success === false) throw apiError || (data as any)?.message;
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.success === false) throw data;
+      
       setMessage({ type: "success", text: "SMTP Connection Successful!" });
     } catch (e: any) {
       console.error(e);

@@ -11,9 +11,12 @@ export default function EmailLogsPage() {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
-        const { data } = await authClient.fetch("/api/settings/logs", {});
-        if (data) {
+        const res = await fetch("/api/settings/logs");
+        if (res.ok) {
+          const data = await res.json();
           setLogs(data as any[]);
+        } else {
+          throw new Error("Failed to load");
         }
       } catch (e: any) {
         setError("Failed to load email logs.");
