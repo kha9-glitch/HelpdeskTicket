@@ -58,6 +58,8 @@ router.post("/email", requireAuth, requireAdmin, async (req, res) => {
 
   const updateData = {
     ...data.data,
+    imapTls: data.data.imapPort === 993,
+    smtpSecure: data.data.smtpPort === 465,
     imapPassword,
     smtpPassword
   };
@@ -92,7 +94,7 @@ router.post("/test-imap", requireAuth, requireAdmin, async (req, res) => {
     const client = new ImapFlow({
       host: data.imapHost,
       port: data.imapPort,
-      secure: data.imapTls,
+      secure: data.imapPort === 993,
       auth: { user: data.imapUser, pass },
       logger: false
     });
@@ -114,7 +116,7 @@ router.post("/test-smtp", requireAuth, requireAdmin, async (req, res) => {
     const transporter = nodemailer.createTransport({
       host: data.smtpHost,
       port: data.smtpPort,
-      secure: data.smtpSecure,
+      secure: data.smtpPort === 465,
       auth: { user: data.smtpUser, pass },
     });
 
