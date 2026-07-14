@@ -18,6 +18,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@ai-sdk/google": "^4.0.14",
     "@ai-sdk/openai": "^3.0.33",
     "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",

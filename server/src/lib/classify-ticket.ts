@@ -1,6 +1,6 @@
 import type { PgBoss } from "pg-boss";
 import { generateText } from "ai";
-import { openai } from "@ai-sdk/openai";
+import { google } from "@ai-sdk/google";
 import {
   ticketCategories,
   type TicketCategory,
@@ -28,7 +28,7 @@ export async function registerClassifyWorker(boss: PgBoss): Promise<void> {
 
     try {
       const { text } = await generateText({
-        model: openai("gpt-5-nano"),
+        model: google("gemini-2.5-flash"),
         system:
           "You are a support ticket classifier. " +
           "Classify the ticket into exactly one of these categories: " +
