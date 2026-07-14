@@ -78,8 +78,10 @@ router.post("/email", requireAuth, requireAdmin, async (req, res) => {
 
   // Restart IMAP listener seamlessly to pick up new config
   if (config.isActive) {
-    await stopImapListener();
-    startImapListener().catch(console.error);
+    stopImapListener().catch(console.error);
+    setTimeout(() => {
+      startImapListener().catch(console.error);
+    }, 1000);
   }
 
   res.json(config);
@@ -96,12 +98,17 @@ router.post("/test-imap", requireAuth, requireAdmin, async (req, res) => {
       port: data.imapPort,
       secure: data.imapPort === 993,
       auth: { user: data.imapUser, pass },
-      logger: false
+      logger: false,
     });
 
-    await client.connect();
-    await client.logout();
-    res.json({ success: true, message: "IMAP connection successful!" });
+    try {
+      await client.connect();
+      await client.logout();
+      res.json({ success: true, message: "IMAP connection successful!" });
+    } catch (e: any) {
+      client.close();
+      throw e;
+    }
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message || "Failed to connect" });
   }
@@ -118,6 +125,9 @@ router.post("/test-smtp", requireAuth, requireAdmin, async (req, res) => {
       port: data.smtpPort,
       secure: data.smtpPort === 465,
       auth: { user: data.smtpUser, pass },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
     });
 
     await transporter.verify();
