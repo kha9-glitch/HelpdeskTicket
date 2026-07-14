@@ -68,7 +68,8 @@ export default function SettingsPage() {
       if (apiError || (data as any)?.success === false) throw apiError || (data as any)?.message;
       setMessage({ type: "success", text: "IMAP Connection Successful!" });
     } catch (e: any) {
-      setMessage({ type: "error", text: `IMAP Test Failed: ${e?.message || e || "Unknown error"}` });
+      const errorMsg = e?.body?.message || e?.message || (typeof e === 'string' ? e : "Unknown error");
+      setMessage({ type: "error", text: `IMAP Test Failed: ${errorMsg}` });
     } finally {
       setTestingImap(false);
     }
@@ -86,7 +87,8 @@ export default function SettingsPage() {
       if (apiError || (data as any)?.success === false) throw apiError || (data as any)?.message;
       setMessage({ type: "success", text: "SMTP Connection Successful!" });
     } catch (e: any) {
-      setMessage({ type: "error", text: `SMTP Test Failed: ${e?.message || e || "Unknown error"}` });
+      const errorMsg = e?.body?.message || e?.message || (typeof e === 'string' ? e : "Unknown error");
+      setMessage({ type: "error", text: `SMTP Test Failed: ${errorMsg}` });
     } finally {
       setTestingSmtp(false);
     }
