@@ -89,7 +89,7 @@ if (!process.env.WEBHOOK_SECRET) {
 
 async function boot() {
   await startQueue();
-  await startImapListener();
+  startImapListener().catch(console.error);
 
   const server = app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
