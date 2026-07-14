@@ -23,13 +23,13 @@ export default function SettingsPage() {
           return;
         }
       }
-      } else {
-        setConfig({
-          imapHost: "", imapPort: 993, imapUser: "", imapPassword: "", imapTls: true,
-          smtpHost: "", smtpPort: 465, smtpUser: "", smtpPassword: "", smtpSecure: true,
-          fromAddress: "", isActive: true
-        });
-      }
+      
+      // Fallback
+      setConfig({
+        imapHost: "", imapPort: 993, imapUser: "", imapPassword: "", imapTls: true,
+        smtpHost: "", smtpPort: 465, smtpUser: "", smtpPassword: "", smtpSecure: true,
+        fromAddress: "", isActive: true
+      });
     } catch (e: any) {
       setMessage({ type: "error", text: "Failed to load settings." });
     } finally {
