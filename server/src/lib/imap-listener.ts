@@ -158,8 +158,12 @@ export async function startImapListener() {
       // Process initial unread emails
       for await (let msg of client.fetch({ seen: false }, { source: true, uid: true })) {
         if (msg.source) {
-          await processEmailMessage(msg.source, config.id);
-          await client.messageFlagsAdd(msg.uid, ['\\Seen'], { uid: true });
+          try {
+            await processEmailMessage(msg.source, config.id);
+            await client.messageFlagsAdd([msg.uid], ['\\Seen'], { uid: true });
+          } catch (e: any) {
+            console.error("Error processing msg in initial fetch:", e);
+          }
         }
       }
     } finally {
@@ -174,8 +178,12 @@ export async function startImapListener() {
         try {
           for await (let msg of client!.fetch({ seen: false }, { source: true, uid: true })) {
             if (msg.source) {
-              await processEmailMessage(msg.source, config.id);
-              await client!.messageFlagsAdd(msg.uid, ['\\Seen'], { uid: true });
+              try {
+                await processEmailMessage(msg.source, config.id);
+                await client!.messageFlagsAdd([msg.uid], ['\\Seen'], { uid: true });
+              } catch (e: any) {
+                console.error("Error processing msg in exists event:", e);
+              }
             }
           }
         } finally {
