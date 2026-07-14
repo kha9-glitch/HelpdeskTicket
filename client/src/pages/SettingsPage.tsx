@@ -22,7 +22,7 @@ export default function SettingsPage() {
         const configData = await res.json();
         if (configData) {
           setConfig(configData);
-          setOutboundMode(configData.sendgridApiKey && configData.sendgridApiKey !== "********" && configData.sendgridApiKey !== "" ? "sendgrid" : "smtp");
+          setOutboundMode(configData.sendgridApiKey ? "sendgrid" : "smtp");
           return;
         }
       }
