@@ -75,12 +75,17 @@ export async function registerSendEmailWorker(boss: PgBoss): Promise<void> {
       Sentry.captureException(error, {
         tags: { queue: QUEUE_NAME },
       });
+      let errorMessage = error.message;
+      if (error.response && error.response.body && error.response.body.errors) {
+        errorMessage = error.response.body.errors.map((e: any) => e.message).join(", ");
+      }
+
       await prisma.systemLog.create({
         data: {
           level: "error",
           component: "SMTP",
           message: `Failed to send email to ${to}`,
-          details: error.message
+          details: errorMessage
         }
       });
       throw error;
