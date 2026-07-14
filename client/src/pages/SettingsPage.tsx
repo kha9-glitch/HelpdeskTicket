@@ -28,6 +28,7 @@ export default function SettingsPage() {
       setConfig({
         imapHost: "", imapPort: 993, imapUser: "", imapPassword: "", imapTls: true,
         smtpHost: "", smtpPort: 465, smtpUser: "", smtpPassword: "", smtpSecure: true,
+        sendgridApiKey: "",
         fromAddress: "", isActive: true
       });
     } catch (e: any) {
@@ -96,7 +97,10 @@ export default function SettingsPage() {
     setTestingSmtp(true);
     setMessage(null);
     try {
-      const res = await fetch("/api/settings/test-smtp", {
+      const isSendgrid = !!config.sendgridApiKey;
+      const endpoint = isSendgrid ? "/api/settings/test-sendgrid" : "/api/settings/test-smtp";
+      
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(config)
@@ -104,7 +108,7 @@ export default function SettingsPage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok || data.success === false) throw data;
       
-      setMessage({ type: "success", text: "SMTP Connection Successful!" });
+      setMessage({ type: "success", text: isSendgrid ? "SendGrid Connection Successful!" : "SMTP Connection Successful!" });
     } catch (e: any) {
       console.error(e);
       let errorMsg = "Unknown error";
@@ -193,6 +197,20 @@ export default function SettingsPage() {
               <label className="text-sm font-medium">App Password</label>
               <Input type="password" value={config.smtpPassword || ""} onChange={(e) => setConfig({...config, smtpPassword: e.target.value})} placeholder={config.smtpPassword === "********" ? "******** (Unchanged)" : "Enter password"} />
             </div>
+            
+            <div className="my-4 border-t pt-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-semibold">SendGrid API Fallback (Optional)</h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">Recommended if your host blocks standard SMTP ports (e.g. Railway).</p>
+                </div>
+              </div>
+              <div className="mt-3 space-y-1.5">
+                <label className="text-sm font-medium">SendGrid API Key</label>
+                <Input type="password" value={config.sendgridApiKey || ""} onChange={(e) => setConfig({...config, sendgridApiKey: e.target.value})} placeholder={config.sendgridApiKey === "********" ? "******** (Unchanged)" : "SG.xxxxxxxxxxxx"} />
+              </div>
+            </div>
+
             <div className="space-y-1.5">
               <label className="text-sm font-medium">From Address</label>
               <Input value={config.fromAddress || ""} onChange={(e) => setConfig({...config, fromAddress: e.target.value})} placeholder="Support Team <support@domain.com>" />

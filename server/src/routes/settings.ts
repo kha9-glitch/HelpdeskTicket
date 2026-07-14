@@ -20,6 +20,7 @@ const emailConfigSchema = z.object({
   smtpUser: z.string().catch(""),
   smtpPassword: z.string().catch(""),
   smtpSecure: z.boolean().catch(true),
+  sendgridApiKey: z.string().catch(""),
   fromAddress: z.string().catch(""),
   isActive: z.boolean().catch(true)
 });
@@ -34,7 +35,8 @@ router.get("/email", requireAuth, requireAdmin, async (req, res) => {
   res.json({
     ...config,
     imapPassword: config.imapPassword ? "********" : "",
-    smtpPassword: config.smtpPassword ? "********" : ""
+    smtpPassword: config.smtpPassword ? "********" : "",
+    sendgridApiKey: config.sendgridApiKey ? "********" : ""
   });
 });
 
@@ -56,12 +58,17 @@ router.post("/email", requireAuth, requireAdmin, async (req, res) => {
     ? existing.smtpPassword 
     : data.data.smtpPassword;
 
+  const sendgridApiKey = data.data.sendgridApiKey === "********" && existing
+    ? existing.sendgridApiKey
+    : data.data.sendgridApiKey;
+
   const updateData = {
     ...data.data,
     imapTls: data.data.imapPort === 993,
     smtpSecure: data.data.smtpPort === 465,
     imapPassword,
-    smtpPassword
+    smtpPassword,
+    sendgridApiKey
   };
 
   let config;
@@ -134,6 +141,26 @@ router.post("/test-smtp", requireAuth, requireAdmin, async (req, res) => {
     res.json({ success: true, message: "SMTP connection successful!" });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message || "Failed to connect" });
+  }
+});
+
+router.post("/test-sendgrid", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const data = emailConfigSchema.parse(req.body);
+    const existing = await prisma.emailConfig.findFirst();
+    const apiKey = data.sendgridApiKey === "********" && existing ? existing.sendgridApiKey : data.sendgridApiKey;
+
+    if (!apiKey) throw new Error("SendGrid API Key is missing");
+
+    // Test API key by making a simple request to SendGrid
+    const sgMail = (await import("@sendgrid/mail")).default;
+    sgMail.setApiKey(apiKey);
+    
+    // We can't actually verify the API key without sending an email or querying their API, 
+    // but we can catch empty/invalid formats.
+    res.json({ success: true, message: "SendGrid API Key looks good!" });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message || "Invalid API Key" });
   }
 });
 

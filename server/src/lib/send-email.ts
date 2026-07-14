@@ -29,23 +29,38 @@ export async function registerSendEmailWorker(boss: PgBoss): Promise<void> {
         return;
       }
 
-      const transporter = nodemailer.createTransport({
-        host: config.smtpHost,
-        port: config.smtpPort,
-        secure: config.smtpSecure,
-        auth: {
-          user: config.smtpUser,
-          pass: config.smtpPassword,
-        },
-      });
+      if (config.sendgridApiKey) {
+        // Use SendGrid HTTP API to bypass Railway SMTP blocks
+        const sgMail = (await import("@sendgrid/mail")).default;
+        sgMail.setApiKey(config.sendgridApiKey);
+        
+        await sgMail.send({
+          from: config.fromAddress,
+          to,
+          subject,
+          text: body,
+          ...(bodyHtml && { html: bodyHtml }),
+        });
+      } else {
+        // Fallback to SMTP
+        const transporter = nodemailer.createTransport({
+          host: config.smtpHost,
+          port: config.smtpPort,
+          secure: config.smtpSecure,
+          auth: {
+            user: config.smtpUser,
+            pass: config.smtpPassword,
+          },
+        });
 
-      await transporter.sendMail({
-        from: config.fromAddress,
-        to,
-        subject,
-        text: body,
-        ...(bodyHtml && { html: bodyHtml }),
-      });
+        await transporter.sendMail({
+          from: config.fromAddress,
+          to,
+          subject,
+          text: body,
+          ...(bodyHtml && { html: bodyHtml }),
+        });
+      }
 
       console.log(`Email sent to ${to} — subject: "${subject}"`);
       

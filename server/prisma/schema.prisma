@@ -143,6 +143,7 @@ model EmailConfig {
   smtpUser       String
   smtpPassword   String
   smtpSecure     Boolean  @default(true)
+  sendgridApiKey String?
   fromAddress    String
   isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())
