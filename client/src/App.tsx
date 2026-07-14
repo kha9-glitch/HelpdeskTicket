@@ -7,6 +7,7 @@ import HomePage from "./pages/HomePage";
 import UsersPage from "./pages/UsersPage";
 import TicketsPage from "./pages/TicketsPage";
 import TicketDetailPage from "./pages/TicketDetailPage";
+import SettingsPage from "./pages/SettingsPage";
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
           <Route path="/tickets/:id" element={<TicketDetailPage />} />
           <Route element={<AdminRoute />}>
             <Route path="/users" element={<UsersPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
           </Route>
         </Route>
       </Route>

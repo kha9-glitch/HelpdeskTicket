@@ -12,7 +12,9 @@ import ticketsRouter from "./routes/tickets";
 import agentsRouter from "./routes/agents";
 import webhooksRouter from "./routes/webhooks";
 import repliesRouter from "./routes/replies";
+import settingsRouter from "./routes/settings";
 import { startQueue, stopQueue } from "./lib/queue";
+import { startImapListener, stopImapListener } from "./lib/imap-listener";
 
 
 if (!process.env.BETTER_AUTH_SECRET) {
@@ -64,6 +66,7 @@ app.use("/api/tickets", ticketsRouter);
 app.use("/api/agents", agentsRouter);
 app.use("/api/tickets/:ticketId/replies", repliesRouter);
 app.use("/api/webhooks", webhooksRouter);
+app.use("/api/settings", settingsRouter);
 
 Sentry.setupExpressErrorHandler(app);
 
@@ -84,6 +87,7 @@ if (!process.env.WEBHOOK_SECRET) {
 
 async function boot() {
   await startQueue();
+  await startImapListener();
 
   const server = app.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);
@@ -92,6 +96,7 @@ async function boot() {
   const shutdown = async () => {
     console.log("Shutting down...");
     server.close();
+    await stopImapListener();
     await stopQueue();
     process.exit(0);
   };

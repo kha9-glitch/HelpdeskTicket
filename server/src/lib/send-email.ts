@@ -1,6 +1,7 @@
-import sgMail from "@sendgrid/mail";
+import nodemailer from "nodemailer";
 import type { PgBoss } from "pg-boss";
 import Sentry from "./sentry";
+import prisma from "../db";
 
 const QUEUE_NAME = "send-email";
 
@@ -22,20 +23,50 @@ export async function registerSendEmailWorker(boss: PgBoss): Promise<void> {
     const { to, subject, body, bodyHtml } = jobs[0]!.data;
 
     try {
-      sgMail.setApiKey(process.env.SENDGRID_API_KEY!);
+      const config = await prisma.emailConfig.findFirst();
+      if (!config || !config.isActive) {
+        console.log("Skipping email send: EmailConfig not found or not active.");
+        return;
+      }
 
-      await sgMail.send({
+      const transporter = nodemailer.createTransport({
+        host: config.smtpHost,
+        port: config.smtpPort,
+        secure: config.smtpSecure,
+        auth: {
+          user: config.smtpUser,
+          pass: config.smtpPassword,
+        },
+      });
+
+      await transporter.sendMail({
+        from: config.fromAddress,
         to,
-        from: process.env.SENDGRID_FROM_EMAIL!,
         subject,
         text: body,
         ...(bodyHtml && { html: bodyHtml }),
       });
 
       console.log(`Email sent to ${to} — subject: "${subject}"`);
-    } catch (error) {
+      
+      await prisma.systemLog.create({
+        data: {
+          level: "info",
+          component: "SMTP",
+          message: `Email sent to ${to}`,
+        }
+      });
+    } catch (error: any) {
       Sentry.captureException(error, {
         tags: { queue: QUEUE_NAME },
+      });
+      await prisma.systemLog.create({
+        data: {
+          level: "error",
+          component: "SMTP",
+          message: `Failed to send email to ${to}`,
+          details: error.message
+        }
       });
       throw error;
     }

@@ -130,3 +130,34 @@ model Verification {
 
   @@map("verification")
 }
+
+model EmailConfig {
+  id             Int      @id @default(autoincrement())
+  imapHost       String
+  imapPort       Int      @default(993)
+  imapUser       String
+  imapPassword   String
+  imapTls        Boolean  @default(true)
+  smtpHost       String
+  smtpPort       Int      @default(465)
+  smtpUser       String
+  smtpPassword   String
+  smtpSecure     Boolean  @default(true)
+  fromAddress    String
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("email_config")
+}
+
+model SystemLog {
+  id        Int      @id @default(autoincrement())
+  level     String   @default("info") // "info", "error", "warn"
+  component String   // "IMAP", "SMTP", "System"
+  message   String
+  details   String?
+  createdAt DateTime @default(now())
+
+  @@map("system_log")
+}

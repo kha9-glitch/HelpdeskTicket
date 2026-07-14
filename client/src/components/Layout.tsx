@@ -9,6 +9,7 @@ import {
   LogOut,
   Sun,
   Moon,
+  Settings
 } from "lucide-react";
 
 export default function Layout() {
@@ -54,10 +55,16 @@ export default function Layout() {
             Tickets
           </NavLink>
           {session?.user?.role === Role.admin && (
-            <NavLink to="/users" className={navLinkClass}>
-              <Users className="h-3.5 w-3.5" />
-              Users
-            </NavLink>
+            <>
+              <NavLink to="/users" className={navLinkClass}>
+                <Users className="h-3.5 w-3.5" />
+                Users
+              </NavLink>
+              <NavLink to="/settings" className={navLinkClass}>
+                <Settings className="h-3.5 w-3.5" />
+                Settings
+              </NavLink>
+            </>
           )}
         </div>
         <div className="flex items-center gap-1">

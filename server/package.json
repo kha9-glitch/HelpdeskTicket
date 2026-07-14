@@ -10,6 +10,8 @@
     "@types/bun": "latest",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "@types/mailparser": "^3.4.6",
+    "@types/nodemailer": "^8.0.1",
     "prisma": "^7.3.0"
   },
   "peerDependencies": {
@@ -31,7 +33,10 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
     "helmet": "^8.1.0",
+    "imapflow": "^1.4.7",
+    "mailparser": "^3.9.14",
     "multer": "^2.1.0",
+    "nodemailer": "^9.0.3",
     "pg-boss": "^12.13.0",
     "zod": "^4.3.6"
   }
