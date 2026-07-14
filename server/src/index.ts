@@ -22,6 +22,8 @@ if (!process.env.BETTER_AUTH_SECRET) {
 }
 
 const app = express();
+app.set("trust proxy", 1); // Trust Railway's reverse proxy for rate limiting
+
 const port = process.env.PORT || 3000;
 
 app.use(helmet());
