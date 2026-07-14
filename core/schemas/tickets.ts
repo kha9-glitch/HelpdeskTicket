@@ -3,11 +3,11 @@ import { agentTicketStatuses } from "../constants/ticket-status";
 import { ticketCategories } from "../constants/ticket-category";
 
 export const inboundEmailSchema = z.object({
-  from: z.email("Invalid email address"),
+  from: z.string().email("Invalid email address"),
   fromName: z.string().trim().min(1, "Sender name is required").max(255, "Sender name is too long"),
-  subject: z.string().trim().min(1, "Subject is required").max(255, "Subject is too long"),
-  body: z.string().min(1, "Body is required").max(1000, "Body is too long"),
-  bodyHtml: z.string().max(2000, "HTML body is too long").optional(),
+  subject: z.string().trim().min(1, "Subject is required").max(1000, "Subject is too long"),
+  body: z.string().min(1, "Body is required").max(1000000, "Body is too long"),
+  bodyHtml: z.string().max(2000000, "HTML body is too long").optional(),
 });
 
 export type InboundEmailInput = z.infer<typeof inboundEmailSchema>;

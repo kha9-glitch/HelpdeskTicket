@@ -7,7 +7,7 @@ export const createReplySchema = z.object({
 export type CreateReplyInput = z.infer<typeof createReplySchema>;
 
 export const polishReplySchema = z.object({
-  body: z.string().min(1, "Body is required").max(1000),
+  body: z.string().min(1, "Body is required").max(10000),
 });
 
 export type PolishReplyInput = z.infer<typeof polishReplySchema>;
