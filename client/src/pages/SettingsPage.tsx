@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 import { authClient } from "../lib/auth-client";
-import { Loader2, Save, Server, Mail, Activity } from "lucide-react";
+import { Loader2, Save, Server, Mail, Activity, AlertCircle } from "lucide-react";
 
 export default function SettingsPage() {
   const [config, setConfig] = useState<any>(null);
@@ -11,6 +12,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [testingImap, setTestingImap] = useState(false);
   const [testingSmtp, setTestingSmtp] = useState(false);
+  const [outboundMode, setOutboundMode] = useState<"smtp" | "sendgrid">("smtp");
   const [message, setMessage] = useState<{type: "error" | "success", text: string} | null>(null);
 
   const fetchData = async () => {
@@ -20,6 +22,7 @@ export default function SettingsPage() {
         const configData = await res.json();
         if (configData) {
           setConfig(configData);
+          setOutboundMode(configData.sendgridApiKey && configData.sendgridApiKey !== "********" && configData.sendgridApiKey !== "" ? "sendgrid" : "smtp");
           return;
         }
       }
@@ -43,13 +46,42 @@ export default function SettingsPage() {
   }, []);
 
   const handleSave = async () => {
-    setSaving(true);
     setMessage(null);
+    
+    // Basic Validation
+    if (!config.imapHost || !config.imapUser) {
+      setMessage({ type: "error", text: "IMAP Host and Username are required." });
+      return;
+    }
+    if (outboundMode === "smtp" && (!config.smtpHost || !config.smtpUser)) {
+      setMessage({ type: "error", text: "SMTP Host and Username are required." });
+      return;
+    }
+    if (outboundMode === "sendgrid" && !config.sendgridApiKey) {
+      setMessage({ type: "error", text: "SendGrid API Key is required." });
+      return;
+    }
+    if (!config.fromAddress) {
+      setMessage({ type: "error", text: "From Address is required." });
+      return;
+    }
+
+    setSaving(true);
     try {
+      // Ensure we clear out the inactive mode's primary credential so backend knows our preference
+      const payload = { ...config };
+      if (outboundMode === "sendgrid") {
+        payload.smtpHost = "";
+        payload.smtpUser = "";
+        payload.smtpPassword = "";
+      } else {
+        payload.sendgridApiKey = "";
+      }
+
       const res = await fetch("/api/settings/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(config)
+        body: JSON.stringify(payload)
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -97,7 +129,7 @@ export default function SettingsPage() {
     setTestingSmtp(true);
     setMessage(null);
     try {
-      const isSendgrid = !!config.sendgridApiKey;
+      const isSendgrid = outboundMode === "sendgrid";
       const endpoint = isSendgrid ? "/api/settings/test-sendgrid" : "/api/settings/test-smtp";
       
       const res = await fetch(endpoint, {
@@ -181,37 +213,46 @@ export default function SettingsPage() {
             <CardDescription>Configure how the system sends replies back to customers.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 flex-1">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">SMTP Host</label>
-              <Input value={config.smtpHost || ""} onChange={(e) => setConfig({...config, smtpHost: e.target.value})} placeholder="smtp.gmail.com" />
+            <div className="space-y-1.5 pb-2">
+              <label className="text-sm font-medium">Outbound Provider</label>
+              <Select value={outboundMode} onValueChange={(val: any) => setOutboundMode(val)}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select provider" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="smtp">Custom SMTP Server</SelectItem>
+                  <SelectItem value="sendgrid">SendGrid API (Bypasses Blocks)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">SMTP Port</label>
-              <Input type="number" value={config.smtpPort || ""} onChange={(e) => setConfig({...config, smtpPort: parseInt(e.target.value) || 465})} />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">Email / Username</label>
-              <Input value={config.smtpUser || ""} onChange={(e) => setConfig({...config, smtpUser: e.target.value})} placeholder="support@yourdomain.com" />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">App Password</label>
-              <Input type="password" value={config.smtpPassword || ""} onChange={(e) => setConfig({...config, smtpPassword: e.target.value})} placeholder={config.smtpPassword === "********" ? "******** (Unchanged)" : "Enter password"} />
-            </div>
-            
-            <div className="my-4 border-t pt-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-sm font-semibold">SendGrid API Fallback (Optional)</h4>
-                  <p className="text-xs text-muted-foreground mt-0.5">Recommended if your host blocks standard SMTP ports (e.g. Railway).</p>
+
+            {outboundMode === "smtp" ? (
+              <>
+                <div className="space-y-1.5 border-t pt-3 mt-2">
+                  <label className="text-sm font-medium">SMTP Host</label>
+                  <Input value={config.smtpHost || ""} onChange={(e) => setConfig({...config, smtpHost: e.target.value})} placeholder="smtp.gmail.com" />
                 </div>
-              </div>
-              <div className="mt-3 space-y-1.5">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">SMTP Port</label>
+                  <Input type="number" value={config.smtpPort || ""} onChange={(e) => setConfig({...config, smtpPort: parseInt(e.target.value) || 465})} />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Email / Username</label>
+                  <Input value={config.smtpUser || ""} onChange={(e) => setConfig({...config, smtpUser: e.target.value})} placeholder="support@yourdomain.com" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">App Password</label>
+                  <Input type="password" value={config.smtpPassword || ""} onChange={(e) => setConfig({...config, smtpPassword: e.target.value})} placeholder={config.smtpPassword === "********" ? "******** (Unchanged)" : "Enter password"} />
+                </div>
+              </>
+            ) : (
+              <div className="space-y-1.5 border-t pt-3 mt-2">
                 <label className="text-sm font-medium">SendGrid API Key</label>
                 <Input type="password" value={config.sendgridApiKey || ""} onChange={(e) => setConfig({...config, sendgridApiKey: e.target.value})} placeholder={config.sendgridApiKey === "********" ? "******** (Unchanged)" : "SG.xxxxxxxxxxxx"} />
               </div>
-            </div>
+            )}
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 border-t pt-3 mt-2">
               <label className="text-sm font-medium">From Address</label>
               <Input value={config.fromAddress || ""} onChange={(e) => setConfig({...config, fromAddress: e.target.value})} placeholder="Support Team <support@domain.com>" />
             </div>
