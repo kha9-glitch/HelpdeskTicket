@@ -68,7 +68,14 @@ export default function SettingsPage() {
       if (apiError || (data as any)?.success === false) throw apiError || (data as any)?.message;
       setMessage({ type: "success", text: "IMAP Connection Successful!" });
     } catch (e: any) {
-      const errorMsg = e?.body?.message || e?.message || (typeof e === 'string' ? e : "Unknown error");
+      console.error(e);
+      let errorMsg = "Unknown error";
+      if (typeof e === 'string') errorMsg = e;
+      else if (e?.error?.message) errorMsg = e.error.message;
+      else if (e?.body?.message) errorMsg = e.body.message;
+      else if (e?.message) errorMsg = e.message;
+      else errorMsg = JSON.stringify(e);
+      
       setMessage({ type: "error", text: `IMAP Test Failed: ${errorMsg}` });
     } finally {
       setTestingImap(false);
@@ -87,7 +94,14 @@ export default function SettingsPage() {
       if (apiError || (data as any)?.success === false) throw apiError || (data as any)?.message;
       setMessage({ type: "success", text: "SMTP Connection Successful!" });
     } catch (e: any) {
-      const errorMsg = e?.body?.message || e?.message || (typeof e === 'string' ? e : "Unknown error");
+      console.error(e);
+      let errorMsg = "Unknown error";
+      if (typeof e === 'string') errorMsg = e;
+      else if (e?.error?.message) errorMsg = e.error.message;
+      else if (e?.body?.message) errorMsg = e.body.message;
+      else if (e?.message) errorMsg = e.message;
+      else errorMsg = JSON.stringify(e);
+      
       setMessage({ type: "error", text: `SMTP Test Failed: ${errorMsg}` });
     } finally {
       setTestingSmtp(false);
