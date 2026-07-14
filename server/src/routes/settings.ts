@@ -3,22 +3,25 @@ import { requireAuth } from "../middleware/require-auth";
 import prisma from "../db";
 import { requireAdmin } from "../middleware/require-admin";
 import { z } from "zod";
+import { ImapFlow } from "imapflow";
+import nodemailer from "nodemailer";
+import { stopImapListener, startImapListener } from "../lib/imap-listener";
 
 const router = Router();
 
 const emailConfigSchema = z.object({
-  imapHost: z.string().min(1),
-  imapPort: z.number().int(),
-  imapUser: z.string().min(1),
-  imapPassword: z.string().min(1),
-  imapTls: z.boolean(),
-  smtpHost: z.string().min(1),
-  smtpPort: z.number().int(),
-  smtpUser: z.string().min(1),
-  smtpPassword: z.string().min(1),
-  smtpSecure: z.boolean(),
-  fromAddress: z.string().email(),
-  isActive: z.boolean()
+  imapHost: z.string().catch(""),
+  imapPort: z.number().int().catch(993),
+  imapUser: z.string().catch(""),
+  imapPassword: z.string().catch(""),
+  imapTls: z.boolean().catch(true),
+  smtpHost: z.string().catch(""),
+  smtpPort: z.number().int().catch(465),
+  smtpUser: z.string().catch(""),
+  smtpPassword: z.string().catch(""),
+  smtpSecure: z.boolean().catch(true),
+  fromAddress: z.string().catch(""),
+  isActive: z.boolean().catch(true)
 });
 
 router.get("/email", requireAuth, requireAdmin, async (req, res) => {
@@ -59,24 +62,73 @@ router.post("/email", requireAuth, requireAdmin, async (req, res) => {
     smtpPassword
   };
 
+  let config;
   if (existing) {
-    const updated = await prisma.emailConfig.update({
+    config = await prisma.emailConfig.update({
       where: { id: existing.id },
       data: updateData
     });
-    res.json(updated);
   } else {
-    const created = await prisma.emailConfig.create({
+    config = await prisma.emailConfig.create({
       data: updateData
     });
-    res.json(created);
+  }
+
+  // Restart IMAP listener seamlessly to pick up new config
+  if (config.isActive) {
+    await stopImapListener();
+    startImapListener().catch(console.error);
+  }
+
+  res.json(config);
+});
+
+router.post("/test-imap", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const data = emailConfigSchema.parse(req.body);
+    const existing = await prisma.emailConfig.findFirst();
+    const pass = data.imapPassword === "********" && existing ? existing.imapPassword : data.imapPassword;
+
+    const client = new ImapFlow({
+      host: data.imapHost,
+      port: data.imapPort,
+      secure: data.imapTls,
+      auth: { user: data.imapUser, pass },
+      logger: false
+    });
+
+    await client.connect();
+    await client.logout();
+    res.json({ success: true, message: "IMAP connection successful!" });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message || "Failed to connect" });
+  }
+});
+
+router.post("/test-smtp", requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const data = emailConfigSchema.parse(req.body);
+    const existing = await prisma.emailConfig.findFirst();
+    const pass = data.smtpPassword === "********" && existing ? existing.smtpPassword : data.smtpPassword;
+
+    const transporter = nodemailer.createTransport({
+      host: data.smtpHost,
+      port: data.smtpPort,
+      secure: data.smtpSecure,
+      auth: { user: data.smtpUser, pass },
+    });
+
+    await transporter.verify();
+    res.json({ success: true, message: "SMTP connection successful!" });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message || "Failed to connect" });
   }
 });
 
 router.get("/logs", requireAuth, requireAdmin, async (req, res) => {
   const logs = await prisma.systemLog.findMany({
     orderBy: { createdAt: 'desc' },
-    take: 50
+    take: 100
   });
   res.json(logs);
 });

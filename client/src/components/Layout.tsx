@@ -9,7 +9,8 @@ import {
   LogOut,
   Sun,
   Moon,
-  Settings
+  Settings,
+  Activity
 } from "lucide-react";
 
 export default function Layout() {
@@ -63,6 +64,10 @@ export default function Layout() {
               <NavLink to="/settings" className={navLinkClass}>
                 <Settings className="h-3.5 w-3.5" />
                 Settings
+              </NavLink>
+              <NavLink to="/email-logs" className={navLinkClass}>
+                <Activity className="h-3.5 w-3.5" />
+                Email Logs
               </NavLink>
             </>
           )}
