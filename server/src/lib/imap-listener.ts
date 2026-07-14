@@ -161,15 +161,20 @@ export async function startImapListener() {
     let lock = await client.getMailboxLock('INBOX');
     try {
       // Process initial unread emails
+      const processedUids: number[] = [];
       for await (let msg of client.fetch({ seen: false }, { source: true, uid: true })) {
         if (msg.source) {
           try {
             await processEmailMessage(msg.source, config.id);
-            await client.messageFlagsAdd([msg.uid], ['\\Seen'], { uid: true });
+            processedUids.push(msg.uid);
           } catch (e: any) {
             console.error("Error processing msg in initial fetch:", e);
           }
         }
+      }
+      
+      if (processedUids.length > 0) {
+        await client.messageFlagsAdd(processedUids, ['\\Seen'], { uid: true });
       }
     } finally {
       lock.release();
@@ -181,15 +186,19 @@ export async function startImapListener() {
       try {
         let lock = await client!.getMailboxLock('INBOX');
         try {
+          const processedUids: number[] = [];
           for await (let msg of client!.fetch({ seen: false }, { source: true, uid: true })) {
             if (msg.source) {
               try {
                 await processEmailMessage(msg.source, config.id);
-                await client!.messageFlagsAdd([msg.uid], ['\\Seen'], { uid: true });
+                processedUids.push(msg.uid);
               } catch (e: any) {
                 console.error("Error processing msg in exists event:", e);
               }
             }
+          }
+          if (processedUids.length > 0) {
+            await client!.messageFlagsAdd(processedUids, ['\\Seen'], { uid: true });
           }
         } finally {
           lock.release();
