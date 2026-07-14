@@ -68,6 +68,13 @@ async function processEmailMessage(source: Buffer, configId: number) {
           userId: null,
         },
       });
+      await prisma.systemLog.create({
+        data: {
+          level: "info",
+          component: "IMAP",
+          message: `Received reply for ticket #${existingTicket.id} from ${data.from}`,
+        }
+      });
       console.log(`IMAP: Added reply to ticket #${existingTicket.id}`);
       return;
     }
@@ -81,6 +88,14 @@ async function processEmailMessage(source: Buffer, configId: number) {
         senderEmail: data.from,
         assignedToId: AI_AGENT_ID,
       },
+    });
+
+    await prisma.systemLog.create({
+      data: {
+        level: "info",
+        component: "IMAP",
+        message: `Created new ticket #${ticket.id} from ${data.from}`,
+      }
     });
 
     console.log(`IMAP: Created new ticket #${ticket.id}`);

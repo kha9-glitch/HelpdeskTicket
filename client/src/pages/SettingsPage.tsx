@@ -43,13 +43,16 @@ export default function SettingsPage() {
     setSaving(true);
     setError("");
     try {
-      await authClient.fetch("/api/settings/email", {
+      const { error: apiError } = await authClient.fetch("/api/settings/email", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(config)
       });
+      if (apiError) throw apiError;
+      
       await fetchData();
     } catch (e: any) {
-      setError("Failed to save settings.");
+      setError("Failed to save settings. Please check your inputs.");
     } finally {
       setSaving(false);
     }
